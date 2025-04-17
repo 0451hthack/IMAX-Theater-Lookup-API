@@ -553,7 +553,7 @@ form button {
                 return
             }
             try {
-                const res = await fetch('http://localhost:3006/check_status?api_key=' + users_api_key)
+                const res = await fetch('https://imax-theater-lookup-api-production.up.railway.app/check_status?api_key=' + users_api_key)
                 const { status } = await res.json()
                 console.log('Status of API Key Is: ', status)
                 if(status === "This API Key doesn't exist.")
@@ -601,7 +601,7 @@ form button {
             return
         }
         try {
-            const res = await fetch('http://localhost:3006/delete?api_key=' + users_api_key)
+            const res = await fetch('https://imax-theater-lookup-api-production.up.railway.app/delete?api_key=' + users_api_key)
             keyStatusUpdate.innerHTML = (
                 `<div class="keyInfo">
                         <h3>Status Of Subscription</h3>

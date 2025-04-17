@@ -29,7 +29,7 @@ const openAI = new OpenAI({
 
 const STRIPE_KEY = process.env.STRIPE_SK;
 const stripe = require('stripe')(STRIPE_KEY)
-const DOMAIN = 'http://localhost:3006';
+const DOMAIN = 'https://imax-theater-lookup-api-production.up.railway.app/';
 
 
 //Pool object that uses the .env variables to connect to the Postgres database.
@@ -188,7 +188,7 @@ app.get('/check_status', async (req, res) => {
 
 
     if (product === 'sub') {
-        price_ID = 'price_1QznuxBNSJn5qCnuJ8HCussh'
+        price_ID = process.env.SUB_PRICE
         mode = 'subscription'
         line_items = [
             {
@@ -199,7 +199,7 @@ app.get('/check_status', async (req, res) => {
         //in the case of the subsription plan.
         quantity_type = 'subscription'
     } else if (product === 'prepaid') {
-        price_ID = 'price_1QznP7BNSJn5qCnuVfiixRpN'
+        price_ID = process.env.PREPAID_PRICE
         mode = 'payment'
         line_items = [
             {
