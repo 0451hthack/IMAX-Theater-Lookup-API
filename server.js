@@ -123,14 +123,19 @@ app.get("/", (req, res) => {
   //This route authenticates and verifies the customer's API Key. 
   //Using a Firebase DB record, this makes sure the key is valid and remains up to date.
   app.get('/apiKey', async (req, res) => {
-    const { api_key } = req.query
-    if (!api_key) { return res.sendStatus(403) }
+    const { api_key } = req.query;
+
+    if (!api_key || typeof api_key !== 'string' || api_key.trim() === '') {
+      return res.status(400).json({ error: 'API Key is required and must be a non-empty string.' });
+    }
+
+    try {
     let payment_status, type
-    const doc = await db.collection('api_keys').doc(api_key).get()
+    const doc = await db.collection('api_keys').doc(api_key).get();
     if (!doc.exists) {
         res.status(403).send({ 'status': " Either this API Key doesnt't exist, or it's incorrect." })
     } else {
-        const { status, type, stripeCustomerId } = doc.data()
+        const { status, type, stripeCustomerId } = doc.data();
         if (status === 'subscription') {
             payment_status = true
             const customer = await stripe.customers.retrieve(
@@ -166,6 +171,11 @@ app.get("/", (req, res) => {
     } else {
         res.sendStatus(403)
     }
+  }
+  catch (error) {
+    console.error('Error retrieving API Key:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
 })
 
 app.get('/check_status', async (req, res) => {
@@ -183,38 +193,45 @@ app.get('/check_status', async (req, res) => {
   //Post endpoint request that creates a Stripe checkout session 
   //depending on whether the user picked the prepaid or subscription plan.
   app.post("/create-checkout-session/:product", async (req, res) => {
-    const { product } = req.params
-    let mode, price_ID, line_items, quantity_type
+    const { product } = req.params;
+
+    let mode, price_ID, line_items, quantity_type;
 
 
     if (product === 'sub') {
-        price_ID = process.env.SUB_PRICE
-        mode = 'subscription'
+        price_ID = process.env.SUB_PRICE;
+        mode = 'subscription';
         line_items = [
             {
                 price: price_ID,
             }
-        ]
+        ];
         //Quantity_type is the API call quantity. It's indefinite
         //in the case of the subsription plan.
-        quantity_type = 'subscription'
+        quantity_type = 'subscription';
     } else if (product === 'prepaid') {
-        price_ID = process.env.PREPAID_PRICE
-        mode = 'payment'
+        price_ID = process.env.PREPAID_PRICE;
+        mode = 'payment';
         line_items = [
             {
                 price: price_ID,
                 quantity: 1
             }
-        ]
+        ];
         //100 API calls for the prepaid plan.
-        quantity_type = 100
+        quantity_type = 100;
     } else {
-        return res.sendStatus(403)
+    return res.status(403).json({ error: 'Invalid product type.' });
     }
 
+    try {
+
     //Generates new API Key to be saved to the Firebase DB.
-    const createAPIKey = await generateApiKey(product)
+    const createAPIKey = await generateApiKey(product);
+
+    if (!createAPIKey || typeof createAPIKey !== 'string' || createAPIKey.trim() === '') {
+      throw new Error('Generated API Key is invalid.');
+    }
 
     await db.collection('api_keys').doc(createAPIKey).set({
       type: product,
@@ -227,8 +244,8 @@ app.get('/check_status', async (req, res) => {
     const customer = await stripe.customers.create({
         metadata: {
             APIkey: createAPIKey
-        }
-    })
+        },
+    });
 
     const stripeCustomerId = customer.id
     const session = await stripe.checkout.sessions.create({
@@ -241,7 +258,9 @@ app.get('/check_status', async (req, res) => {
         mode: mode,
         success_url: `${DOMAIN}/success.html?api_key=${createAPIKey}`,
         cancel_url: `${DOMAIN}/cancellation.html`,
-    })
+    });
+
+    res.redirect(303, session.url);
     console.log(session)
 
     //Creates a Firebase DB record.
@@ -255,9 +274,14 @@ app.get('/check_status', async (req, res) => {
     }
     const dbRes = await db.collection('api_keys').doc(createAPIKey).set(data, { merge: true })
 
-    res.redirect(303, session.url)
+    res.redirect(303, session.url);
     return quantity_type;
-})
+  }
+ catch (error) {
+    console.error('Error creating checkout session:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+}
+});
 
 app.post('/stripe_webhook', (req, res) => {
 
@@ -309,9 +333,10 @@ app.get('/delete', async (req, res) => {
 const apiKeyValidation = async (req, res, next) => {
   const api_key = req.headers['x-api-key']; //The API key passed in the request header.
   console.log('Incoming Header: ', req.headers);
+  console.log('Incoming API Key:', api_key); 
 
-  if (!api_key) {
-    return res.status(401).json({ error: 'API Key is required in order to use this endpoint.' });
+  if (!api_key || typeof api_key !== 'string' || api_key.trim() === '') {
+    return res.status(401).json({ error: 'API Key is required in order to use this endpoint. And it must be a non-empty string.' });
   }
 
   try {
