@@ -13,7 +13,7 @@ const readline = require('readline');
 const request = require('request-promise');
 const cheerio = require('cheerio');
 const makeCsvWriter = require('csv-writer').createObjectCsvWriter;
-const port = process.env.PORT || 3006;
+const PORT = process.env.PORT || 3000;
 
 //Loads the ChatGPT API key and the DB env variables from the .env file.
 dotenv.config();
@@ -879,4 +879,6 @@ theaterRouter.use(requestsLogger);
 app.use('/theaters', imaxLimiter, theaterRouter);
 
 
-app.listen(port, () => console.log('Server has started on port: ${port}'))
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
+});
