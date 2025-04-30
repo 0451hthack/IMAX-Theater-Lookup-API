@@ -260,7 +260,6 @@ app.get('/check_status', async (req, res) => {
         cancel_url: `${DOMAIN}/cancellation.html`,
     });
 
-    res.redirect(303, session.url);
     console.log(session)
 
     //Creates a Firebase DB record.
