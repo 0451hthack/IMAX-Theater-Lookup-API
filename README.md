@@ -4,7 +4,7 @@
 * Author: Harrison Thacker
 * Email: harrison.johnson.thacker@gmail.com
 * Version Of Application: 1.0
-* Period Of Development: Jan - March 2025
+* Period Of Development: Jan - May 2025
 
 ## Overview
 Node.js API that retrieves data from all IMAX theaters around the world. Has endpoints to also add new theaters or even make edits to existing ones.
