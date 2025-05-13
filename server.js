@@ -314,17 +314,15 @@ app.get('/delete', async (req, res) => {
      return res.status(400).send({ status: "This API Key doesn't exist." })  
     } 
 
-    else {
-
-      const { stripeCustomerId } = doc.data()
+      const { stripeCustomerId } = doc.data();
       
           //Retrieves the Stripe Customer and their subscription.
           const customer = await stripe.customers.retrieve(
               stripeCustomerId,
               { expand: ['subscriptions'] }
-          )
+          );
           
-          console.log(customer)
+          console.log(customer);
 
           //Retrieves the customer's subscription ID.
           let subscriptionId = customer?.subscriptions?.data?.[0].id
@@ -335,16 +333,15 @@ app.get('/delete', async (req, res) => {
           //Saves cancelled subscription changes to the Firebase DB.
           const data = {
               status: null //The cancelled subscription now has a value of null to match its status.
-          }
+          };
           const dbRes = await db.collection('api_keys').doc(api_key).set(data, { merge: true })
-        }
-          catch (err) {
+          
+          res.sendStatus(200);
+        } catch (err) {
           console.error('An error has occurred while trying to cancel the subscription.')
           return res.sendStatus(500)
-      }
-      res.sendStatus(200)
-    }
-});
+        }
+      });
 
 //Middleware fuction which validates API Keys in order for somebody to use the IMAX REST endpoints.
 const apiKeyValidation = async (req, res, next) => {
