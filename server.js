@@ -125,6 +125,7 @@ app.get("/", (req, res) => {
   app.get('/apiKey', async (req, res) => {
     const { api_key } = req.query;
 
+    //API Key Validation
     if (!api_key || typeof api_key !== 'string' || api_key.trim() === '') {
       return res.status(400).json({ error: 'API Key is required and must be a non-empty string.' });
     }
@@ -179,15 +180,26 @@ app.get("/", (req, res) => {
 })
 
 app.get('/check_status', async (req, res) => {
-  const { api_key } = req.query
-  const doc = await db.collection('api_keys').doc(api_key).get()
-  if (!doc.exists) {
-      res.status(400).send({ 'status': "This API Key doesn't exist." })
-  } else {
-      const { status } = doc.data()
-      res.status(200).send({ 'status': status })
+  const { api_key } = req.query;
+
+  //API Key Validation.
+  if (!api_key || typeof api_key !== 'string' || api_key.trim() === '') {
+    return res.status(400).json({ error: 'API Key is required and must be a non-empty string.' });
   }
-})
+
+  try {
+  const doc = await db.collection('api_keys').doc(api_key).get();
+  if (!doc.exists) {
+     return res.status(400).send({ 'status': "This API Key doesn't exist." })
+  } 
+  
+      const { status } = doc.data();
+      res.status(200).send({ 'status': status });
+} catch (error) {
+  console.error('Error retrieving API Key status:', error);
+  res.status(500).json({ error: 'Internal Server Error' });
+}
+});
 
 
   //Post endpoint request that creates a Stripe checkout session 
@@ -288,10 +300,16 @@ app.post('/stripe_webhook', (req, res) => {
 
 //Endpoint that cancels a Stripe subscription plan when called.
 app.get('/delete', async (req, res) => {
-  const { api_key } = req.query
+  const { api_key } = req.query;
+
+  //API Key Validation.
+  if (!api_key || typeof api_key !== 'string' || api_key.trim() === '') {
+    return res.status(400).json({ error: 'API Key is required and must be a non-empty string.' });
+  }
 
     //Retrieves the specific key from the Firebase API Key database.
-  const doc = await db.collection('api_keys').doc(api_key).get()
+    try {
+    const doc = await db.collection('api_keys').doc(api_key).get();
   if (!doc.exists) {
      return res.status(400).send({ status: "This API Key doesn't exist." })  
     } 
@@ -299,7 +317,7 @@ app.get('/delete', async (req, res) => {
     else {
 
       const { stripeCustomerId } = doc.data()
-      try {
+      
           //Retrieves the Stripe Customer and their subscription.
           const customer = await stripe.customers.retrieve(
               stripeCustomerId,
@@ -326,7 +344,7 @@ app.get('/delete', async (req, res) => {
       }
       res.sendStatus(200)
     }
-})
+});
 
 //Middleware fuction which validates API Keys in order for somebody to use the IMAX REST endpoints.
 const apiKeyValidation = async (req, res, next) => {
